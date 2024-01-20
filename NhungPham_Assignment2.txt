@@ -1,0 +1,2926 @@
+﻿
+# Assignment 2: Analysis of Facebook Engagement
+
+## Name: Trang-Nhung Pham         
+
+## Student ID: 11896558
+
+
+
+
+# I. Introduction
+
+For conservationist NGOs, communication is close to a work of persuasion (Núñez & Moreno, 2016) as it needs to both increase awareness of people and encourage behavioural change. However, closing the gap between communication and engagement is a challenging task as it is often harder to encourage the public to participate in conservation activities than to make them aware of conservation work being done. This challenge is more apparent in the context of social media communication as messages that are rapidly and dynamically spread do not necessarily entail involvement and engagement (Dosemagen, 2016). Therefore, making social media users ultimately engaged with conservationist content is an essential challenge that conservationist groups need to overcome.
+
+To find a solution for the problem, it is of great significance to learn how social media communication generate engagement. In particular, it is to know what type of content can encourage engagement from audience, especially active and pro-active engagement.
+
+This analysis tries to answer the research question: **"Which content generates more active engagement on Facebook page of conservationist NGOs?"**
+
+Using data from the Facebook page of World Wildlife Fund, the analysis will answer the research question through 5 hypotheses: 
+
+Firstly, the research would test if the common claim that photo got the highest engagement rate while status receives the lowest engagement rate (Schwartz, 2017) applies to the case. Hypothesis 1 therefore is:
+
+**H1: Type of post affects engagement quantitatively**
+
+Content of posts plays a role in engagement of audience. It is argued that the public is more likely to make comments on two-way asymmetry communication as this appears as an effort of the organizations to build relationships with them (Cho, Schweickart, & Haase, 2014, pp. 566-567). Hence, hypotheses 2, 3 and 4 are: 
+
+**H2: The inclusion of question helps increase engagement**
+
+**H3: Call-in-action content helps increase engagement**
+
+**H4: Content's sentiment can affect engagement both quantitatively and qualitatively**
+
+Lastly, as argued a rule of thumb for social media content, shorter content is more likely to  attract engagement (Jackson, 2017), hypothesis 5 is decided as:
+
+**H5: The length of post affects engagement quantitatively**
+
+
+# II. Data Analysis
+
+## 1. Gathering data
+
+
+```python
+import pandas as pd
+```
+
+
+```python
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib.dates as dates
+import matplotlib as mpl
+import numpy as np
+from scipy import stats, integrate
+%matplotlib inline
+```
+
+**About the data:**
+
+The data used in this analysis is Facebook data of World Wildlife Fund's page gathered with Netvizz in March 20, 2018 including stats of the latest 300 posts. Data obtained is only related to posts published by the page itself, not by audience. According to customs in social science research, each group of data should have around 50 to 80 events (Reinard, 2006, p. 40), therefore this sample is effective enough for studying post performance. Besides, regarding the average posting behaviour of Facebook pages at 1.40 posts per day (Schwartz, 2017), the number of posts chosen probably covers Facebook activity of the page in six months, a long enough period of time for the study. 
+
+The data includes content and various information of both posts and comments such as the numbers of likes, shares, comments, etc. From this dataset, posts' and comments' text were extracted for sentiment analysis and merged again into the data
+
+
+```python
+posts=pd.read_table('page_15687409793_2018_03_20_09_15_50_fullstats.tab')
+comments=pd.read_table('page_15687409793_2018_03_20_09_15_50_comments.tab')
+```
+
+
+```python
+posts_senti=posts[['post_id','post_message']]
+posts_senti.columns=['id','text']
+comments_senti=comments[['comment_id','comment_message']]
+comments_senti.columns=['id','text']
+```
+
+
+```python
+posts_senti.to_pickle('NhungPham_Assignment2_EN.pkl')
+comments_senti.to_pickle('NhungPham_Assignment2_EN_cm.pkl')
+```
+
+
+```python
+post_sentiment=pd.read_pickle('Pham trang nhung - NhungPham_Assignment2_EN_completed.pkl')
+comment_sentiment=pd.read_pickle('Pham trang nhung - NhungPham_Assignment2_cm_EN_completed.pkl')
+```
+
+
+```python
+post_sentiment.columns
+```
+
+
+
+
+    Index(['id', 'text', 'negative', 'positive', 'neutral'], dtype='object')
+
+
+
+
+```python
+post_sentiment = post_sentiment.rename(columns={'id': 'post_id', 'text': 'post_message'})
+comment_sentiment = comment_sentiment.rename(columns={'id': 'comment_id', 'text': 'comment_message'})
+```
+
+
+```python
+post_data=pd.merge(posts,post_sentiment,on=['post_id','post_message'])
+comment_data=pd.merge(comments,comment_sentiment,on=['comment_id','comment_message'])
+```
+
+
+```python
+post_data.columns
+```
+
+
+
+
+    Index(['type', 'by', 'post_id', 'post_link', 'post_message', 'picture',
+           'full_picture', 'link', 'link_domain', 'post_published',
+           'post_published_unix', 'post_published_sql', 'likes_count_fb',
+           'comments_count_fb', 'reactions_count_fb', 'shares_count_fb',
+           'engagement_fb', 'comments_retrieved', 'comments_base',
+           'comments_replies', 'comment_likes_count', 'rea_LOVE', 'rea_WOW',
+           'rea_HAHA', 'rea_SAD', 'rea_ANGRY', 'rea_THANKFUL', 'negative',
+           'positive', 'neutral'],
+          dtype='object')
+
+
+
+
+```python
+comment_data.columns
+```
+
+
+
+
+    Index(['position', 'post_id', 'post_by', 'post_text', 'post_published',
+           'comment_id', 'comment_by', 'is_reply', 'comment_message',
+           'comment_published', 'comment_like_count', 'attachment_type',
+           'attachment_url', 'negative', 'positive', 'neutral'],
+          dtype='object')
+
+
+
+# 2. Inspection and cleaning up of the data
+
+At first data types and general description of the merged data is inspected.
+
+
+```python
+post_data.dtypes
+```
+
+
+
+
+    type                   object
+    by                     object
+    post_id                object
+    post_link              object
+    post_message           object
+    picture                object
+    full_picture           object
+    link                   object
+    link_domain            object
+    post_published         object
+    post_published_unix     int64
+    post_published_sql     object
+    likes_count_fb          int64
+    comments_count_fb       int64
+    reactions_count_fb      int64
+    shares_count_fb         int64
+    engagement_fb           int64
+    comments_retrieved      int64
+    comments_base           int64
+    comments_replies        int64
+    comment_likes_count     int64
+    rea_LOVE                int64
+    rea_WOW                 int64
+    rea_HAHA                int64
+    rea_SAD                 int64
+    rea_ANGRY               int64
+    rea_THANKFUL            int64
+    negative               object
+    positive               object
+    neutral                object
+    dtype: object
+
+
+
+
+```python
+post_data.describe().transpose()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>count</th>
+      <th>mean</th>
+      <th>std</th>
+      <th>min</th>
+      <th>25%</th>
+      <th>50%</th>
+      <th>75%</th>
+      <th>max</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>post_published_unix</th>
+      <td>300.0</td>
+      <td>1.502508e+09</td>
+      <td>1.061177e+07</td>
+      <td>1.485472e+09</td>
+      <td>1.492824e+09</td>
+      <td>1.502006e+09</td>
+      <td>1.511606e+09</td>
+      <td>1.521483e+09</td>
+    </tr>
+    <tr>
+      <th>likes_count_fb</th>
+      <td>300.0</td>
+      <td>1.170293e+03</td>
+      <td>1.253386e+03</td>
+      <td>6.400000e+01</td>
+      <td>4.130000e+02</td>
+      <td>7.615000e+02</td>
+      <td>1.429250e+03</td>
+      <td>1.025700e+04</td>
+    </tr>
+    <tr>
+      <th>comments_count_fb</th>
+      <td>300.0</td>
+      <td>4.274000e+01</td>
+      <td>5.145962e+01</td>
+      <td>1.000000e+00</td>
+      <td>1.300000e+01</td>
+      <td>2.300000e+01</td>
+      <td>4.800000e+01</td>
+      <td>3.090000e+02</td>
+    </tr>
+    <tr>
+      <th>reactions_count_fb</th>
+      <td>300.0</td>
+      <td>1.516410e+03</td>
+      <td>1.624897e+03</td>
+      <td>7.100000e+01</td>
+      <td>5.332500e+02</td>
+      <td>9.650000e+02</td>
+      <td>1.919500e+03</td>
+      <td>1.231500e+04</td>
+    </tr>
+    <tr>
+      <th>shares_count_fb</th>
+      <td>300.0</td>
+      <td>2.910033e+02</td>
+      <td>5.051211e+02</td>
+      <td>0.000000e+00</td>
+      <td>7.300000e+01</td>
+      <td>1.380000e+02</td>
+      <td>2.867500e+02</td>
+      <td>5.215000e+03</td>
+    </tr>
+    <tr>
+      <th>engagement_fb</th>
+      <td>300.0</td>
+      <td>1.850153e+03</td>
+      <td>2.045922e+03</td>
+      <td>8.700000e+01</td>
+      <td>6.492500e+02</td>
+      <td>1.178500e+03</td>
+      <td>2.323000e+03</td>
+      <td>1.465900e+04</td>
+    </tr>
+    <tr>
+      <th>comments_retrieved</th>
+      <td>300.0</td>
+      <td>3.847333e+01</td>
+      <td>4.757950e+01</td>
+      <td>1.000000e+00</td>
+      <td>1.100000e+01</td>
+      <td>2.150000e+01</td>
+      <td>4.325000e+01</td>
+      <td>3.020000e+02</td>
+    </tr>
+    <tr>
+      <th>comments_base</th>
+      <td>300.0</td>
+      <td>2.897667e+01</td>
+      <td>3.281054e+01</td>
+      <td>1.000000e+00</td>
+      <td>9.750000e+00</td>
+      <td>1.800000e+01</td>
+      <td>3.325000e+01</td>
+      <td>2.470000e+02</td>
+    </tr>
+    <tr>
+      <th>comments_replies</th>
+      <td>300.0</td>
+      <td>9.496667e+00</td>
+      <td>1.693969e+01</td>
+      <td>0.000000e+00</td>
+      <td>1.000000e+00</td>
+      <td>3.000000e+00</td>
+      <td>9.000000e+00</td>
+      <td>1.000000e+02</td>
+    </tr>
+    <tr>
+      <th>comment_likes_count</th>
+      <td>300.0</td>
+      <td>3.795000e+01</td>
+      <td>7.509424e+01</td>
+      <td>0.000000e+00</td>
+      <td>6.000000e+00</td>
+      <td>1.500000e+01</td>
+      <td>3.025000e+01</td>
+      <td>6.510000e+02</td>
+    </tr>
+    <tr>
+      <th>rea_LOVE</th>
+      <td>300.0</td>
+      <td>1.643133e+02</td>
+      <td>2.707959e+02</td>
+      <td>1.000000e+00</td>
+      <td>2.500000e+01</td>
+      <td>8.300000e+01</td>
+      <td>1.832500e+02</td>
+      <td>2.920000e+03</td>
+    </tr>
+    <tr>
+      <th>rea_WOW</th>
+      <td>300.0</td>
+      <td>2.440000e+01</td>
+      <td>3.680601e+01</td>
+      <td>0.000000e+00</td>
+      <td>4.000000e+00</td>
+      <td>1.000000e+01</td>
+      <td>3.100000e+01</td>
+      <td>2.550000e+02</td>
+    </tr>
+    <tr>
+      <th>rea_HAHA</th>
+      <td>300.0</td>
+      <td>1.343333e+00</td>
+      <td>2.427295e+00</td>
+      <td>0.000000e+00</td>
+      <td>0.000000e+00</td>
+      <td>1.000000e+00</td>
+      <td>2.000000e+00</td>
+      <td>2.200000e+01</td>
+    </tr>
+    <tr>
+      <th>rea_SAD</th>
+      <td>300.0</td>
+      <td>1.064567e+02</td>
+      <td>3.006528e+02</td>
+      <td>0.000000e+00</td>
+      <td>1.000000e+00</td>
+      <td>4.000000e+00</td>
+      <td>7.725000e+01</td>
+      <td>2.765000e+03</td>
+    </tr>
+    <tr>
+      <th>rea_ANGRY</th>
+      <td>300.0</td>
+      <td>4.935667e+01</td>
+      <td>1.931679e+02</td>
+      <td>0.000000e+00</td>
+      <td>0.000000e+00</td>
+      <td>1.000000e+00</td>
+      <td>6.250000e+00</td>
+      <td>2.039000e+03</td>
+    </tr>
+    <tr>
+      <th>rea_THANKFUL</th>
+      <td>300.0</td>
+      <td>1.400000e-01</td>
+      <td>1.664221e+00</td>
+      <td>0.000000e+00</td>
+      <td>0.000000e+00</td>
+      <td>0.000000e+00</td>
+      <td>0.000000e+00</td>
+      <td>2.800000e+01</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+**The centre dependent variable in this analysis is engagement. Engagement is counted in two ways:**
+
+Quantitative variables including: numbers of likes (likes_count_fb), shares (shares_count_fb), reactions (reactions_count_fb), comments (comments_count_fb), and engagement (engagement_fb). These variables are provided in the data set.
+
+Sentiment variables including: reaction sentiment and comment sentiment.  These variables need to be formed.
+
+- To form a dependent variable of reaction sentiment, I calculated number of positive reactions (sum of love, wow, haha, and thankful reactions) and negative reactions (sum of sad and angry reactions) as well as a general count for sentiment (substracting the numbers of positive to negative reactions).
+
+
+```python
+post_data['positive_rea']=post_data['rea_LOVE']+post_data['rea_WOW']+post_data['rea_HAHA']+post_data['rea_THANKFUL']
+post_data['negative_rea']=post_data['rea_SAD']+post_data['rea_ANGRY']
+post_data['rea_senti']=post_data['positive_rea']-post_data['negative_rea']
+```
+
+
+```python
+post_data[['positive_rea','negative_rea','rea_senti']].describe()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>positive_rea</th>
+      <th>negative_rea</th>
+      <th>rea_senti</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>300.000000</td>
+      <td>300.000000</td>
+      <td>300.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>190.196667</td>
+      <td>155.813333</td>
+      <td>34.383333</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>291.649555</td>
+      <td>437.849410</td>
+      <td>532.995607</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>5.000000</td>
+      <td>0.000000</td>
+      <td>-3357.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>37.750000</td>
+      <td>1.000000</td>
+      <td>-13.250000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>95.500000</td>
+      <td>4.000000</td>
+      <td>63.500000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>217.000000</td>
+      <td>95.000000</td>
+      <td>182.250000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>3036.000000</td>
+      <td>3440.000000</td>
+      <td>3012.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+I also formed a categorical variable of reaction sentiment based on the general sentiment variable that contains 3 types: positive, negative and neutral
+
+
+```python
+def sentiment_reaction(row):
+    row['reaction sentiment'] = 'reaction sentiment'
+    if (row['rea_senti'] == 0):
+        row['reaction sentiment'] = 'Neutral'
+    if (row['rea_senti'] > 0):
+        row['reaction sentiment'] = 'Positive'
+    if (row['rea_senti'] < 0):
+        row['reaction sentiment'] = 'Negative'
+    return row
+```
+
+
+```python
+post_data=post_data.apply(sentiment_reaction,axis=1)
+```
+
+
+```python
+post_data['reaction sentiment'].value_counts()
+```
+
+
+
+
+    Positive    220
+    Negative     80
+    Name: reaction sentiment, dtype: int64
+
+
+
+As shown in the above test, there is no post that received equally distributed reactions, resulting in no neutral-reacted post. The number of posts having more positive reactions is bigger than the number of posts having more negative reactions.
+
+- To calculate comment sentiment, I got the sum of values of three comment sentiment columns: negative, positive and neutral. 
+
+
+```python
+comment_data['negative']=comment_data['negative'].apply(pd.to_numeric)
+comment_data['positive']=comment_data['positive'].apply(pd.to_numeric)
+comment_data['neutral']=comment_data['neutral'].apply(pd.to_numeric)
+comment_data['sentiment']=comment_data['negative']+comment_data['positive']+comment_data['neutral']
+```
+
+
+```python
+comment_data['sentiment'].value_counts()
+```
+
+
+
+
+     0    4770
+     2    2325
+     3    1159
+    -2    1069
+    -3     650
+    -1     559
+     4     512
+    -4     369
+    -5      79
+     5      50
+    Name: sentiment, dtype: int64
+
+
+
+This information was then pushed to the post level by calculating the mean of comment sentiment for each post. After that I created another categorical variable for general sentiment of comment based on the mean and merge the data with the post data set.
+
+
+```python
+senti = pd.DataFrame(comment_data.groupby('post_id')[['sentiment']].mean())
+```
+
+
+```python
+senti = senti.reset_index()
+```
+
+
+```python
+senti.head()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>post_id</th>
+      <th>sentiment</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>15687409793_10154518523199794</td>
+      <td>0.565217</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>15687409793_10154520190999794</td>
+      <td>1.536913</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>15687409793_10154528635199794</td>
+      <td>0.318182</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>15687409793_10154533681774794</td>
+      <td>0.466667</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>15687409793_10154537167854794</td>
+      <td>0.444444</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+def comment_senti_type(row):
+    row['comment_gen_senti'] = 'comment_gen_senti'
+    if (row['sentiment'] == 0):
+        row['comment_gen_senti'] = 'Neutral'
+    if (row['sentiment'] > 0):
+        row['comment_gen_senti'] = 'Positive'
+    if (row['sentiment'] < 0):
+        row['comment_gen_senti'] = 'Negative'
+    return row
+```
+
+
+```python
+senti=senti.apply(comment_senti_type,axis=1)
+```
+
+
+```python
+senti = senti.rename(columns={ 'sentiment': 'comment_sentiment'})
+```
+
+
+```python
+senti.columns
+```
+
+
+
+
+    Index(['post_id', 'comment_sentiment', 'comment_gen_senti'], dtype='object')
+
+
+
+**There are five independent variables in this analysis:**
+post type(1); question inclusion(2); call-in-action content(3); post sentiment(4); post length(5).
+
+- Post type is provided in the dataset.
+
+
+```python
+post_data['type'].value_counts()
+```
+
+
+
+
+    link     191
+    video     56
+    photo     53
+    Name: type, dtype: int64
+
+
+
+- In order to generate two variables of question inclusion and call-in-action content, I used a function to detect if particular words are present in the text of posts
+
+
+```python
+import re
+```
+
+
+```python
+def wordlist_any_present(text, query):
+    text = str(text).lower()
+    newquery = []
+    for word in query:
+        newquery.append(str(word).lower())
+    tokens = re.findall(r"[\w']+|[.,!?;$@#]", text)
+    
+    for word in newquery:
+        if word in tokens:
+            return 1
+    return 0
+```
+
+To detect if a post contain question or not, I use the wordlist-present function to detect if a question mark is present in the text
+
+
+```python
+post_data['question'] = post_data['post_message'].apply(wordlist_any_present,args=('?',))
+```
+
+
+```python
+post_data['question'].value_counts()
+```
+
+
+
+
+    0    253
+    1     47
+    Name: question, dtype: int64
+
+
+
+To detect if a text is a text for calling in action, I use the wordlist present function to check if the text contains any word that deliver this meaning
+
+
+```python
+post_data['call_in_action'] = post_data['post_message'].apply(wordlist_any_present,args=(['act','help','join',
+'take action','action','take measure','participate','participating','take part in'],))
+```
+
+
+```python
+post_data['call_in_action'].value_counts()
+```
+
+
+
+
+    0    225
+    1     75
+    Name: call_in_action, dtype: int64
+
+
+
+- By merging sentiment data into the data before, I already have 3 columns of post sentiment, however in order to smooth the analysis, I will form a sentiment variable by summing values of 3 columns.
+
+
+```python
+post_data['negative']=post_data['negative'].apply(pd.to_numeric)
+post_data['positive']=post_data['positive'].apply(pd.to_numeric)
+post_data['neutral']=post_data['neutral'].apply(pd.to_numeric)
+post_data['sentiment']=post_data['negative']+post_data['positive']+post_data['neutral']
+```
+
+
+```python
+post_data['sentiment'].value_counts()
+```
+
+
+
+
+     2    69
+     0    66
+    -2    59
+    -1    43
+     3    26
+    -3    25
+    -4     6
+     4     6
+    Name: sentiment, dtype: int64
+
+
+
+I will also form another categorical variable of sentiment that groups sentiment into three groups: neutral, positive and negative
+
+
+```python
+def sentiment_type(row):
+    row['general_sentiment'] = 'general_sentiment'
+    if (row['sentiment'] == 0):
+        row['general_sentiment'] = 'Neutral'
+    if (row['sentiment'] > 0):
+        row['general_sentiment'] = 'Positive'
+    if (row['sentiment'] < 0):
+        row['general_sentiment'] = 'Negative'
+    return row
+```
+
+
+```python
+post_data=post_data.apply(sentiment_type,axis=1)
+```
+
+
+```python
+post_data['general_sentiment'].value_counts()
+```
+
+
+
+
+    Negative    133
+    Positive    101
+    Neutral      66
+    Name: general_sentiment, dtype: int64
+
+
+
+- To calculate the length of post, I use a function to calculate the total number of words in the post and create another categorical of length.
+
+
+```python
+def wordcount(value):
+    list = re.findall("(\S+)", value)
+    value= len(list)
+
+    return value
+```
+
+
+```python
+post_data['word_count']=post_data['post_message'].apply(wordcount)
+```
+
+
+```python
+post_data['word_count'].describe()
+```
+
+
+
+
+    count    300.000000
+    mean      39.066667
+    std       34.498154
+    min        3.000000
+    25%       17.000000
+    50%       24.000000
+    75%       55.000000
+    max      209.000000
+    Name: word_count, dtype: float64
+
+
+
+
+```python
+def post_length(row):
+    row['length'] = 'length'
+    if (row['word_count'] < 25.0):
+        row['length'] = 'short'
+    if (row['word_count']>=25.0 and row['word_count']<=50.0):
+        row['length'] = 'medium'
+    if (row['word_count'] > 50.0):
+        row['length'] = 'long'
+    return row
+```
+
+
+```python
+post_data=post_data.apply(post_length,axis=1)
+```
+
+
+```python
+post_data['length'].value_counts()
+```
+
+
+
+
+    short     155
+    long       80
+    medium     65
+    Name: length, dtype: int64
+
+
+
+Now all variables have been inspected and cleaned, all needed data is merged again into one dataframe.
+
+
+```python
+post_data.columns
+```
+
+
+
+
+    Index(['type', 'by', 'post_id', 'post_link', 'post_message', 'picture',
+           'full_picture', 'link', 'link_domain', 'post_published',
+           'post_published_unix', 'post_published_sql', 'likes_count_fb',
+           'comments_count_fb', 'reactions_count_fb', 'shares_count_fb',
+           'engagement_fb', 'comments_retrieved', 'comments_base',
+           'comments_replies', 'comment_likes_count', 'rea_LOVE', 'rea_WOW',
+           'rea_HAHA', 'rea_SAD', 'rea_ANGRY', 'rea_THANKFUL', 'negative',
+           'positive', 'neutral', 'positive_rea', 'negative_rea', 'rea_senti',
+           'reaction sentiment', 'question', 'call_in_action', 'sentiment',
+           'general_sentiment', 'word_count', 'length'],
+          dtype='object')
+
+
+
+
+```python
+post_data_full=pd.merge(post_data,senti,on='post_id')
+```
+
+Now we have a single dataframe with all needed variables together with unnecessary information. I will drop the unnecessary columns.
+
+
+```python
+post_data_2=post_data_full.drop(['by','post_link','post_message','picture','full_picture','link','link_domain','post_published',
+                            'post_published_unix','post_published_sql','comments_retrieved','comments_base','comments_replies',
+                            'rea_LOVE', 'rea_WOW','rea_HAHA', 'rea_SAD', 'rea_ANGRY', 'rea_THANKFUL', 'negative','positive',
+                            'neutral','comment_likes_count',],axis=1)
+```
+
+
+```python
+post_data_2.columns
+```
+
+
+
+
+    Index(['type', 'post_id', 'likes_count_fb', 'comments_count_fb',
+           'reactions_count_fb', 'shares_count_fb', 'engagement_fb',
+           'positive_rea', 'negative_rea', 'rea_senti', 'reaction sentiment',
+           'question', 'call_in_action', 'sentiment', 'general_sentiment',
+           'word_count', 'length', 'comment_sentiment', 'comment_gen_senti'],
+          dtype='object')
+
+
+
+### 3. Data Exploration
+
+
+**Description and visualization of dependent variables**
+
+
+```python
+post_data_2[['likes_count_fb','comments_count_fb','reactions_count_fb','shares_count_fb','engagement_fb']].describe()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>likes_count_fb</th>
+      <th>comments_count_fb</th>
+      <th>reactions_count_fb</th>
+      <th>shares_count_fb</th>
+      <th>engagement_fb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>300.000000</td>
+      <td>300.000000</td>
+      <td>300.000000</td>
+      <td>300.000000</td>
+      <td>300.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>1170.293333</td>
+      <td>42.740000</td>
+      <td>1516.410000</td>
+      <td>291.003333</td>
+      <td>1850.153333</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>1253.385732</td>
+      <td>51.459622</td>
+      <td>1624.896791</td>
+      <td>505.121076</td>
+      <td>2045.922295</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>64.000000</td>
+      <td>1.000000</td>
+      <td>71.000000</td>
+      <td>0.000000</td>
+      <td>87.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>413.000000</td>
+      <td>13.000000</td>
+      <td>533.250000</td>
+      <td>73.000000</td>
+      <td>649.250000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>761.500000</td>
+      <td>23.000000</td>
+      <td>965.000000</td>
+      <td>138.000000</td>
+      <td>1178.500000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>1429.250000</td>
+      <td>48.000000</td>
+      <td>1919.500000</td>
+      <td>286.750000</td>
+      <td>2323.000000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>10257.000000</td>
+      <td>309.000000</td>
+      <td>12315.000000</td>
+      <td>5215.000000</td>
+      <td>14659.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+fig = plt.gcf()
+fig.set_size_inches(18.5, 9.5)
+
+plt.subplot(3,2,1)
+plt.plot(post_data_2['likes_count_fb'],color='g',alpha=0.5)
+plt.title('Likes')
+plt.ylabel('count')
+
+plt.subplot(3,2,2)
+plt.plot(post_data_2['shares_count_fb'],color='y',alpha=0.5)
+plt.title('shares')
+plt.ylabel('count')
+
+plt.subplot(3,2,3)
+plt.plot(post_data_2['comments_count_fb'],color='r',alpha=0.5)
+plt.title('comments')
+plt.ylabel('count')
+
+plt.subplot(3,2,4)
+plt.plot(post_data_2['engagement_fb'],color='b',alpha=0.5)
+plt.title('engagement')
+plt.ylabel('count')
+
+plt.subplot(3,2,5)
+plt.plot(post_data_2['reactions_count_fb'],color='m',alpha=0.5)
+plt.title('reactions')
+plt.ylabel('count')
+```
+
+
+
+
+    Text(0,0.5,'count')
+
+
+
+
+![png](output_72_1.png)
+
+
+From this description and visualization, it is clear that the number of comments is the smallest among these metrics and is much smaller than any other metrics.
+Visualization guide is found at https://matplotlib.org/gallery/subplots_axes_and_figures/subplot.html#sphx-glr-gallery-subplots-axes-and-figures-subplot-py
+
+
+```python
+post_data_2[['positive_rea','negative_rea','rea_senti']].describe()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>positive_rea</th>
+      <th>negative_rea</th>
+      <th>rea_senti</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>300.000000</td>
+      <td>300.000000</td>
+      <td>300.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>190.196667</td>
+      <td>155.813333</td>
+      <td>34.383333</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>291.649555</td>
+      <td>437.849410</td>
+      <td>532.995607</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>5.000000</td>
+      <td>0.000000</td>
+      <td>-3357.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>37.750000</td>
+      <td>1.000000</td>
+      <td>-13.250000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>95.500000</td>
+      <td>4.000000</td>
+      <td>63.500000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>217.000000</td>
+      <td>95.000000</td>
+      <td>182.250000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>3036.000000</td>
+      <td>3440.000000</td>
+      <td>3012.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+plt.plot(post_data_2['rea_senti'],color='g',alpha=0.5,label='likes')
+```
+
+
+
+
+    [<matplotlib.lines.Line2D at 0x1759ec25cf8>]
+
+
+
+
+![png](output_75_1.png)
+
+
+In general sentiment of reaction is quite balanced. Though posts that generate extreme negative reaction is more than posts generating extreme positive reaction, positive reaction is still more popular among posts. 
+
+post_data_2[['comment_sentiment']].describe()
+
+
+```python
+sns.countplot(x='comment_gen_senti', data=post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759ec2eb38>
+
+
+
+
+![png](output_78_1.png)
+
+
+Comment sentiment is more polarised than reaction sentiment, with positive sentiment being the most popular.
+
+
+**Description and visualization of independent variables**
+
+
+```python
+post_data_2['type'].value_counts()
+```
+
+
+
+
+    link     191
+    video     56
+    photo     53
+    Name: type, dtype: int64
+
+
+
+
+```python
+sns.countplot(x="type", data= post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759e07fc88>
+
+
+
+
+![png](output_82_1.png)
+
+
+
+```python
+post_data_2['question'].value_counts()
+```
+
+
+
+
+    0    253
+    1     47
+    Name: question, dtype: int64
+
+
+
+
+```python
+sns.countplot(x="question", data= post_data_2, palette="Set1")
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759e873ac8>
+
+
+
+
+![png](output_84_1.png)
+
+
+
+```python
+post_data_2['call_in_action'].value_counts()
+```
+
+
+
+
+    0    225
+    1     75
+    Name: call_in_action, dtype: int64
+
+
+
+
+```python
+sns.countplot(x="call_in_action", data= post_data_2, palette="Set2")
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759e95b828>
+
+
+
+
+![png](output_86_1.png)
+
+
+
+```python
+post_data_2[['sentiment','word_count']].describe()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>sentiment</th>
+      <th>word_count</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>300.000000</td>
+      <td>300.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>-0.066667</td>
+      <td>39.066667</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>2.007233</td>
+      <td>34.498154</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>-4.000000</td>
+      <td>3.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>-2.000000</td>
+      <td>17.000000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>0.000000</td>
+      <td>24.000000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>2.000000</td>
+      <td>55.000000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>4.000000</td>
+      <td>209.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+sns.countplot(x="sentiment", data= post_data_2, palette="Set2")
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759e9a44a8>
+
+
+
+
+![png](output_88_1.png)
+
+
+
+```python
+sns.countplot(x="length", data= post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759e9f20f0>
+
+
+
+
+![png](output_89_1.png)
+
+
+**Description and visualization of key relationships**
+
+- Hypothesis 1: Different post types generate different engagement
+
+
+```python
+post_data_2.groupby('type', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>type</th>
+      <th>likes_count_fb</th>
+      <th>comments_count_fb</th>
+      <th>reactions_count_fb</th>
+      <th>shares_count_fb</th>
+      <th>engagement_fb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>link</td>
+      <td>988.319372</td>
+      <td>36.869110</td>
+      <td>1333.612565</td>
+      <td>209.078534</td>
+      <td>1579.560209</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>photo</td>
+      <td>1680.830189</td>
+      <td>51.358491</td>
+      <td>2033.113208</td>
+      <td>373.509434</td>
+      <td>2457.981132</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>video</td>
+      <td>1307.767857</td>
+      <td>54.607143</td>
+      <td>1650.857143</td>
+      <td>492.339286</td>
+      <td>2197.803571</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+The above description show that post of photo has the highest count of most variables except for number of comments, which video accounts for the highest number. Link is the type of post that has the lowest engagement metrics. 
+
+Following is visualization of 5 primary dependent variables according to type of post. (codes for this visualization is found here https://python-graph-gallery.com/11-grouped-barplot/)
+
+
+```python
+x=post_data_2.groupby('type', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+```
+
+
+```python
+barWidth = 0.25
+ 
+bars1 = x.iloc[0,1:]
+bars2 = x.iloc[1,1:]
+bars3 = x.iloc[2,1:]
+
+r1 = np.arange(len(bars1))
+r2 = [x + barWidth for x in r1]
+r3 = [x + barWidth for x in r2]
+ 
+plt.bar(r1, bars1, color='red', alpha=0.7, width=barWidth, label='link')
+plt.bar(r2, bars2, color='blue', alpha=0.7,width=barWidth, label='photo')
+plt.bar(r3, bars3, color='green', alpha=0.7,width=barWidth, label='video')
+ 
+plt.xticks([r + barWidth for r in range(len(bars1))], ['likes', 'comments', 'reactions', 'shares','engagement'])
+ 
+plt.legend()
+plt.show()
+```
+
+
+![png](output_94_0.png)
+
+
+- Hypothesis 2: Question inclusion increases engagement
+
+
+```python
+post_data_2.groupby('question', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>question</th>
+      <th>likes_count_fb</th>
+      <th>comments_count_fb</th>
+      <th>reactions_count_fb</th>
+      <th>shares_count_fb</th>
+      <th>engagement_fb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>1195.055336</td>
+      <td>41.920949</td>
+      <td>1546.150198</td>
+      <td>302.000000</td>
+      <td>1890.071146</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1037.000000</td>
+      <td>47.148936</td>
+      <td>1356.319149</td>
+      <td>231.808511</td>
+      <td>1635.276596</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+As can be seen in this description, there is no apparent difference between two groups though content without question is slightly more engaging, which is against the hypothesis.
+This is shown clearly in visualization (the visualization is conducted via "melting" of data frame guided here https://www.ibm.com/developerworks/community/blogs/jfp/entry/Tidy_Data_In_Python?lang=en)
+
+
+```python
+x2=post_data_2.groupby('question', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+x2 = x2.rename(columns={ 'likes_count_fb': 'likes','comments_count_fb':'comments','reactions_count_fb':'reactions',
+                        'shares_count_fb':'shares','engagement_fb':'engagement'})
+```
+
+
+```python
+x2_melt = pd.melt(x2, 
+               id_vars='question', 
+               var_name='metrics', 
+               value_name='means')
+```
+
+
+```python
+sns.barplot(x='metrics',y='means',hue='question',data=x2_melt)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759ea474e0>
+
+
+
+
+![png](output_100_1.png)
+
+
+- Hypothesis 3: Call-in-action content increases engagement.
+
+
+```python
+post_data_2.groupby('call_in_action', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>call_in_action</th>
+      <th>likes_count_fb</th>
+      <th>comments_count_fb</th>
+      <th>reactions_count_fb</th>
+      <th>shares_count_fb</th>
+      <th>engagement_fb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>1194.168889</td>
+      <td>42.151111</td>
+      <td>1532.311111</td>
+      <td>285.493333</td>
+      <td>1859.955556</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1098.666667</td>
+      <td>44.506667</td>
+      <td>1468.706667</td>
+      <td>307.533333</td>
+      <td>1820.746667</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Similar to Hypothesis 2, there is little difference between two groups in engagement and call-in-action content generate slightly less engagement.
+
+
+```python
+x3=post_data_2.groupby('call_in_action', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+x3 = x3.rename(columns={ 'likes_count_fb': 'likes','comments_count_fb':'comments','reactions_count_fb':'reactions',
+                        'shares_count_fb':'shares','engagement_fb':'engagement'})
+x3_melt = pd.melt(x3, 
+               id_vars='call_in_action', 
+               var_name='metrics', 
+               value_name='means')
+sns.barplot(x='metrics',y='means',hue='call_in_action',data=x3_melt,palette='Set2')
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759eb8ebe0>
+
+
+
+
+![png](output_104_1.png)
+
+
+- Hypothesis 4: Sentiment of post affects engagement quantitatively and qualitatively
+
+
+```python
+post_data_2.groupby('sentiment', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>sentiment</th>
+      <th>likes_count_fb</th>
+      <th>comments_count_fb</th>
+      <th>reactions_count_fb</th>
+      <th>shares_count_fb</th>
+      <th>engagement_fb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>-4</td>
+      <td>722.500000</td>
+      <td>35.000000</td>
+      <td>944.833333</td>
+      <td>207.666667</td>
+      <td>1187.500000</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>-3</td>
+      <td>776.360000</td>
+      <td>36.920000</td>
+      <td>1146.680000</td>
+      <td>283.560000</td>
+      <td>1467.160000</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-2</td>
+      <td>908.406780</td>
+      <td>36.576271</td>
+      <td>1289.813559</td>
+      <td>228.610169</td>
+      <td>1555.000000</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>-1</td>
+      <td>1165.534884</td>
+      <td>53.069767</td>
+      <td>1498.697674</td>
+      <td>292.279070</td>
+      <td>1844.046512</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0</td>
+      <td>982.696970</td>
+      <td>43.363636</td>
+      <td>1280.803030</td>
+      <td>322.363636</td>
+      <td>1646.530303</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>2</td>
+      <td>1336.492754</td>
+      <td>41.579710</td>
+      <td>1650.608696</td>
+      <td>285.304348</td>
+      <td>1977.492754</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>3</td>
+      <td>2090.538462</td>
+      <td>46.115385</td>
+      <td>2493.115385</td>
+      <td>339.384615</td>
+      <td>2878.615385</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>4</td>
+      <td>2033.333333</td>
+      <td>53.166667</td>
+      <td>2799.666667</td>
+      <td>520.666667</td>
+      <td>3373.500000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+post_data_2.groupby('general_sentiment', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>general_sentiment</th>
+      <th>likes_count_fb</th>
+      <th>comments_count_fb</th>
+      <th>reactions_count_fb</th>
+      <th>shares_count_fb</th>
+      <th>engagement_fb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Negative</td>
+      <td>958.330827</td>
+      <td>41.902256</td>
+      <td>1314.879699</td>
+      <td>258.578947</td>
+      <td>1615.360902</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Neutral</td>
+      <td>982.696970</td>
+      <td>43.363636</td>
+      <td>1280.803030</td>
+      <td>322.363636</td>
+      <td>1646.530303</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Positive</td>
+      <td>1572.000000</td>
+      <td>43.435644</td>
+      <td>1935.752475</td>
+      <td>313.207921</td>
+      <td>2292.396040</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+x4=post_data_2.groupby('general_sentiment', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+x4 = x4.rename(columns={ 'likes_count_fb': 'likes','comments_count_fb':'comments','reactions_count_fb':'reactions',
+                        'shares_count_fb':'shares','engagement_fb':'engagement'})
+x4_melt = pd.melt(x4, 
+               id_vars='general_sentiment', 
+               var_name='metrics', 
+               value_name='means')
+sns.barplot(x='metrics',y='means',hue='general_sentiment',data=x4_melt)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759e9f2cc0>
+
+
+
+
+![png](output_108_1.png)
+
+
+In most cases (especially for likes, reactions, engagement), the the more positive the the post is, the more engagement it generates. However in more pro-active engagement like comments and shares, the difference is much smaller, as shown in visualization.
+
+
+```python
+post_data_2.groupby('sentiment', as_index=False)['positive_rea','negative_rea','rea_senti'].mean()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>sentiment</th>
+      <th>positive_rea</th>
+      <th>negative_rea</th>
+      <th>rea_senti</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>-4</td>
+      <td>69.000000</td>
+      <td>153.333333</td>
+      <td>-84.333333</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>-3</td>
+      <td>76.400000</td>
+      <td>293.880000</td>
+      <td>-217.480000</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-2</td>
+      <td>137.593220</td>
+      <td>243.711864</td>
+      <td>-106.118644</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>-1</td>
+      <td>227.046512</td>
+      <td>105.813953</td>
+      <td>121.232558</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0</td>
+      <td>140.681818</td>
+      <td>157.348485</td>
+      <td>-16.666667</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>2</td>
+      <td>221.144928</td>
+      <td>92.884058</td>
+      <td>128.260870</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>3</td>
+      <td>392.230769</td>
+      <td>10.307692</td>
+      <td>381.923077</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>4</td>
+      <td>352.000000</td>
+      <td>414.333333</td>
+      <td>-62.333333</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+sns.barplot(x='sentiment',y='rea_senti',data=post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759ea62780>
+
+
+
+
+![png](output_111_1.png)
+
+
+As shown above, generally post sentiment positively affect reaction sentiment. However the effect does not seem to be consitent and linear.
+
+
+```python
+sns.barplot(x='sentiment',y='comment_sentiment',data=post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759e09cd68>
+
+
+
+
+![png](output_113_1.png)
+
+
+As above visualizations show, sentiment of posts do have positive effect on sentiment of comment. Compared to reaction sentiment above, the effect on comment sentiment is more apparent.
+
+
+```python
+pd.crosstab(post_data_2['general_sentiment'], post_data_2['reaction sentiment'])
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>reaction sentiment</th>
+      <th>Negative</th>
+      <th>Positive</th>
+    </tr>
+    <tr>
+      <th>general_sentiment</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Negative</th>
+      <td>47</td>
+      <td>86</td>
+    </tr>
+    <tr>
+      <th>Neutral</th>
+      <td>23</td>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>Positive</th>
+      <td>10</td>
+      <td>91</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+pd.crosstab(post_data_2['general_sentiment'], post_data_2['comment_gen_senti'])
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>comment_gen_senti</th>
+      <th>Negative</th>
+      <th>Neutral</th>
+      <th>Positive</th>
+    </tr>
+    <tr>
+      <th>general_sentiment</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Negative</th>
+      <td>51</td>
+      <td>1</td>
+      <td>81</td>
+    </tr>
+    <tr>
+      <th>Neutral</th>
+      <td>21</td>
+      <td>1</td>
+      <td>44</td>
+    </tr>
+    <tr>
+      <th>Positive</th>
+      <td>10</td>
+      <td>2</td>
+      <td>89</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+The crosstabs above somehow present a correlation between sentiment of post and sentiment of comment. However in both cases it seems that while positive content normally generate positive reaction and comment, negative content even generate more positive comment and reaction than negative ones. 
+
+- Hypothesis 5: Length of post affects engagement.
+
+
+```python
+post_data_2.groupby('length', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>length</th>
+      <th>likes_count_fb</th>
+      <th>comments_count_fb</th>
+      <th>reactions_count_fb</th>
+      <th>shares_count_fb</th>
+      <th>engagement_fb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>long</td>
+      <td>1237.075000</td>
+      <td>46.300000</td>
+      <td>1592.012500</td>
+      <td>310.150000</td>
+      <td>1948.462500</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>medium</td>
+      <td>1415.538462</td>
+      <td>49.061538</td>
+      <td>1919.753846</td>
+      <td>365.446154</td>
+      <td>2334.261538</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>short</td>
+      <td>1032.980645</td>
+      <td>38.251613</td>
+      <td>1308.245161</td>
+      <td>249.903226</td>
+      <td>1596.400000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+x5=post_data_2.groupby('length', as_index=False)['likes_count_fb','comments_count_fb',
+                                          'reactions_count_fb','shares_count_fb','engagement_fb'].mean()
+x5 = x5.rename(columns={ 'likes_count_fb': 'likes','comments_count_fb':'comments','reactions_count_fb':'reactions',
+                        'shares_count_fb':'shares','engagement_fb':'engagement'})
+x5_melt = pd.melt(x5, 
+               id_vars='length', 
+               var_name='metrics', 
+               value_name='means')
+sns.barplot(x='metrics',y='means',hue='length',data=x5_melt,palette='deep')
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x1759f06c7b8>
+
+
+
+
+![png](output_120_1.png)
+
+
+Generally long post generates slightly less engagement than short posts but posts of medium length get the most engagement. The relationship therefore does not seem to be clear.
+
+
+```python
+sns.lmplot(x='word_count',y='engagement_fb',data=post_data_2)
+```
+
+
+
+
+    <seaborn.axisgrid.FacetGrid at 0x1759eeab128>
+
+
+
+
+![png](output_122_1.png)
+
+
+## 4. Hypotheses testing
+
+To test the hypotheses, two types of tests are used: 
+
+For Hypothesis 1 Tukey test is conducted to compare means of engagement metrics pair-wise. 
+
+To test all hypotheses at once, OLS is utilised. 
+
+
+```python
+import statsmodels
+from statsmodels.formula.api import ols
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+```
+
+**Hypothesis 1 testing**
+
+In order to do this, I will conduct Tukey test, which is a single-step multiple comparison procedure and statistical test to see if there is difference among groups of post type in engagement. The guide is found at http://hamelg.blogspot.nl/2015/11/python-for-data-analysis-part-16_23.html 
+
+
+```python
+test1a = pairwise_tukeyhsd(endog=post_data_2['comments_count_fb'],
+                          groups=post_data_2['type'],
+                          alpha=0.05)
+test1a.summary()
+```
+
+
+
+
+<table class="simpletable">
+<caption>Multiple Comparison of Means - Tukey HSD,FWER=0.05</caption>
+<tr>
+  <th>group1</th> <th>group2</th> <th>meandiff</th>   <th>lower</th>   <th>upper</th>  <th>reject</th>
+</tr>
+<tr>
+   <td>link</td>   <td>photo</td>  <td>14.4894</td>  <td>-4.173</td>  <td>33.1518</td>  <td>False</td>
+</tr>
+<tr>
+   <td>link</td>   <td>video</td>  <td>17.738</td>   <td>-0.5289</td> <td>36.0049</td>  <td>False</td>
+</tr>
+<tr>
+   <td>photo</td>  <td>video</td>  <td>3.2487</td>  <td>-19.7874</td> <td>26.2847</td>  <td>False</td>
+</tr>
+</table>
+
+
+
+
+```python
+test1b = pairwise_tukeyhsd(endog=post_data_2['likes_count_fb'],
+                          groups=post_data_2['type'],
+                          alpha=0.05)
+test1b.summary()
+```
+
+
+
+
+<table class="simpletable">
+<caption>Multiple Comparison of Means - Tukey HSD,FWER=0.05</caption>
+<tr>
+  <th>group1</th> <th>group2</th> <th>meandiff</th>    <th>lower</th>     <th>upper</th>   <th>reject</th>
+</tr>
+<tr>
+   <td>link</td>   <td>photo</td> <td>692.5108</td>  <td>243.0773</td>  <td>1141.9444</td>  <td>True</td> 
+</tr>
+<tr>
+   <td>link</td>   <td>video</td> <td>319.4485</td>  <td>-120.4607</td> <td>759.3576</td>   <td>False</td>
+</tr>
+<tr>
+   <td>photo</td>  <td>video</td> <td>-373.0623</td> <td>-927.8241</td> <td>181.6994</td>   <td>False</td>
+</tr>
+</table>
+
+
+
+
+```python
+test1c = pairwise_tukeyhsd(endog=post_data_2['engagement_fb'],
+                          groups=post_data_2['type'],
+                          alpha=0.05)
+test1c.summary()
+```
+
+
+
+
+<table class="simpletable">
+<caption>Multiple Comparison of Means - Tukey HSD,FWER=0.05</caption>
+<tr>
+  <th>group1</th> <th>group2</th> <th>meandiff</th>     <th>lower</th>     <th>upper</th>   <th>reject</th>
+</tr>
+<tr>
+   <td>link</td>   <td>photo</td> <td>878.4209</td>   <td>139.8641</td>  <td>1616.9778</td>  <td>True</td> 
+</tr>
+<tr>
+   <td>link</td>   <td>video</td> <td>618.2434</td>   <td>-104.662</td>  <td>1341.1487</td>  <td>False</td>
+</tr>
+<tr>
+   <td>photo</td>  <td>video</td> <td>-260.1776</td> <td>-1171.8209</td> <td>651.4657</td>   <td>False</td>
+</tr>
+</table>
+
+
+
+
+```python
+test1d = pairwise_tukeyhsd(endog=post_data_2['shares_count_fb'],
+                          groups=post_data_2['type'],
+                          alpha=0.05)
+test1d.summary()
+```
+
+
+
+
+<table class="simpletable">
+<caption>Multiple Comparison of Means - Tukey HSD,FWER=0.05</caption>
+<tr>
+  <th>group1</th> <th>group2</th> <th>meandiff</th>   <th>lower</th>     <th>upper</th>  <th>reject</th>
+</tr>
+<tr>
+   <td>link</td>   <td>photo</td> <td>164.4309</td>  <td>-16.108</td>  <td>344.9698</td>  <td>False</td>
+</tr>
+<tr>
+   <td>link</td>   <td>video</td> <td>283.2608</td> <td>106.5479</td>  <td>459.9736</td>  <td>True</td> 
+</tr>
+<tr>
+   <td>photo</td>  <td>video</td> <td>118.8299</td> <td>-104.0197</td> <td>341.6794</td>  <td>False</td>
+</tr>
+</table>
+
+
+
+
+```python
+test1e = pairwise_tukeyhsd(endog=post_data_2['reactions_count_fb'],
+                          groups=post_data_2['type'],
+                          alpha=0.05)
+test1e.summary()
+```
+
+
+
+
+<table class="simpletable">
+<caption>Multiple Comparison of Means - Tukey HSD,FWER=0.05</caption>
+<tr>
+  <th>group1</th> <th>group2</th> <th>meandiff</th>     <th>lower</th>     <th>upper</th>   <th>reject</th>
+</tr>
+<tr>
+   <td>link</td>   <td>photo</td> <td>699.5006</td>   <td>111.4355</td>  <td>1287.5658</td>  <td>True</td> 
+</tr>
+<tr>
+   <td>link</td>   <td>video</td> <td>317.2446</td>   <td>-258.3583</td> <td>892.8475</td>   <td>False</td>
+</tr>
+<tr>
+   <td>photo</td>  <td>video</td> <td>-382.2561</td> <td>-1108.1388</td> <td>343.6267</td>   <td>False</td>
+</tr>
+</table>
+
+
+
+In most of the cases, there is significant difference in engagement between link and photo with exception for number of shares and comments. For number of shares, only the difference between link and video is significant. For number of comments, there is no significant difference among groups.
+
+**Regression with for independent variable**
+
+OLS, a linear regression model, is conducted to test all hypotheses at the same time. Guidance for the test is found at https://stackoverflow.com/questions/19991445/run-an-ols-regression-with-pandas-data-frame
+
+
+```python
+result = ols(formula='comments_count_fb ~ type+question+call_in_action+sentiment+word_count', data=post_data_2).fit()
+print (result.summary())
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:      comments_count_fb   R-squared:                       0.028
+    Model:                            OLS   Adj. R-squared:                  0.008
+    Method:                 Least Squares   F-statistic:                     1.411
+    Date:                Fri, 30 Mar 2018   Prob (F-statistic):              0.210
+    Time:                        13:30:33   Log-Likelihood:                -1603.1
+    No. Observations:                 300   AIC:                             3220.
+    Df Residuals:                     293   BIC:                             3246.
+    Df Model:                           6                                         
+    Covariance Type:            nonrobust                                         
+    ==================================================================================
+                         coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------
+    Intercept         34.6821      4.869      7.123      0.000      25.099      44.265
+    type[T.photo]     12.9090      8.843      1.460      0.145      -4.495      30.313
+    type[T.video]     17.3464      8.206      2.114      0.035       1.197      33.496
+    question           6.8906      8.247      0.836      0.404      -9.341      23.122
+    call_in_action    -0.7402      7.181     -0.103      0.918     -14.873      13.393
+    sentiment          1.3002      1.513      0.860      0.391      -1.677       4.277
+    word_count         0.0443      0.100      0.441      0.659      -0.153       0.242
+    ==============================================================================
+    Omnibus:                      184.502   Durbin-Watson:                   1.841
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):             1111.972
+    Skew:                           2.626   Prob(JB):                    3.45e-242
+    Kurtosis:                      10.835   Cond. No.                         174.
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    
+
+No independent variable has significant effect on number of comments, except for video-type.
+
+
+```python
+sns.boxplot(x="type", y="comments_count_fb", data=post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x175a0e2b7b8>
+
+
+
+
+![png](output_135_1.png)
+
+
+
+```python
+test1= ols('shares_count_fb ~ type+question+call_in_action+sentiment+word_count', data=post_data_2).fit()
+print(test1.summary())
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:        shares_count_fb   R-squared:                       0.057
+    Model:                            OLS   Adj. R-squared:                  0.038
+    Method:                 Least Squares   F-statistic:                     2.944
+    Date:                Fri, 30 Mar 2018   Prob (F-statistic):            0.00835
+    Time:                        13:30:37   Log-Likelihood:                -2283.8
+    No. Observations:                 300   AIC:                             4582.
+    Df Residuals:                     293   BIC:                             4608.
+    Df Model:                           6                                         
+    Covariance Type:            nonrobust                                         
+    ==================================================================================
+                         coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------
+    Intercept        220.6395     47.082      4.686      0.000     127.978     313.301
+    type[T.photo]    172.4629     85.507      2.017      0.045       4.177     340.749
+    type[T.video]    284.4817     79.346      3.585      0.000     128.321     440.642
+    question         -47.6738     79.747     -0.598      0.550    -204.623     109.276
+    call_in_action     5.0958     69.437      0.073      0.942    -131.563     141.754
+    sentiment         15.9932     14.625      1.094      0.275     -12.791      44.777
+    word_count        -0.1522      0.971     -0.157      0.876      -2.063       1.759
+    ==============================================================================
+    Omnibus:                      347.254   Durbin-Watson:                   1.894
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):            18515.260
+    Skew:                           5.082   Prob(JB):                         0.00
+    Kurtosis:                      40.120   Cond. No.                         174.
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    
+
+Only post type (photo and video) has significant effect on the number of shares.
+
+
+```python
+sns.swarmplot(x="type", y="shares_count_fb", data=post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x175a0ec79b0>
+
+
+
+
+![png](output_138_1.png)
+
+
+
+```python
+test2= ols('likes_count_fb ~ type+question+call_in_action+sentiment+word_count', data=post_data_2).fit()
+print(test2.summary())
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:         likes_count_fb   R-squared:                       0.114
+    Model:                            OLS   Adj. R-squared:                  0.095
+    Method:                 Least Squares   F-statistic:                     6.258
+    Date:                Fri, 30 Mar 2018   Prob (F-statistic):           3.34e-06
+    Time:                        13:30:55   Log-Likelihood:                -2547.2
+    No. Observations:                 300   AIC:                             5108.
+    Df Residuals:                     293   BIC:                             5134.
+    Df Model:                           6                                         
+    Covariance Type:            nonrobust                                         
+    ==================================================================================
+                         coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------
+    Intercept        977.2518    113.258      8.629      0.000     754.350    1200.154
+    type[T.photo]    658.0567    205.693      3.199      0.002     253.234    1062.880
+    type[T.video]    289.0298    190.872      1.514      0.131     -86.624     664.684
+    question         -98.6596    191.836     -0.514      0.607    -476.211     278.892
+    call_in_action  -106.6195    167.035     -0.638      0.524    -435.360     222.121
+    sentiment        159.5706     35.182      4.536      0.000      90.328     228.813
+    word_count         1.9347      2.336      0.828      0.408      -2.662       6.532
+    ==============================================================================
+    Omnibus:                      205.309   Durbin-Watson:                   1.737
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):             2024.004
+    Skew:                           2.763   Prob(JB):                         0.00
+    Kurtosis:                      14.462   Cond. No.                         174.
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    
+
+Except for post type (video), only sentiment of post can effect number of likes
+
+
+```python
+sns.lmplot(x="sentiment", y="likes_count_fb", hue='type',truncate=True, size=5, data=post_data_2)
+```
+
+
+
+
+    <seaborn.axisgrid.FacetGrid at 0x175a0f17668>
+
+
+
+
+![png](output_141_1.png)
+
+
+
+```python
+test3= ols('reactions_count_fb ~ type+question+call_in_action+sentiment+word_count', data=post_data_2).fit()
+print(test3.summary())
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:     reactions_count_fb   R-squared:                       0.074
+    Model:                            OLS   Adj. R-squared:                  0.055
+    Method:                 Least Squares   F-statistic:                     3.892
+    Date:                Fri, 30 Mar 2018   Prob (F-statistic):           0.000934
+    Time:                        13:31:23   Log-Likelihood:                -2631.6
+    No. Observations:                 300   AIC:                             5277.
+    Df Residuals:                     293   BIC:                             5303.
+    Df Model:                           6                                         
+    Covariance Type:            nonrobust                                         
+    ==================================================================================
+                         coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------
+    Intercept       1283.4891    150.086      8.552      0.000     988.105    1578.873
+    type[T.photo]    606.2307    272.579      2.224      0.027      69.770    1142.691
+    type[T.video]    245.9203    252.939      0.972      0.332    -251.887     743.727
+    question        -127.7418    254.216     -0.502      0.616    -628.063     372.580
+    call_in_action   -85.6542    221.350     -0.387      0.699    -521.292     349.984
+    sentiment        170.2844     46.623      3.652      0.000      78.527     262.042
+    word_count         3.3966      3.095      1.097      0.273      -2.695       9.488
+    ==============================================================================
+    Omnibus:                      210.155   Durbin-Watson:                   1.709
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):             2091.304
+    Skew:                           2.852   Prob(JB):                         0.00
+    Kurtosis:                      14.609   Cond. No.                         174.
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    
+
+Againt, post type (video) and sentiment of post can affect number of reactions
+
+
+```python
+sns.lmplot(x="sentiment", y="reactions_count_fb", hue='type', data=post_data_2)
+```
+
+
+
+
+    <seaborn.axisgrid.FacetGrid at 0x175a0f0d5f8>
+
+
+
+
+![png](output_144_1.png)
+
+
+
+```python
+test4= ols('engagement_fb ~ type+question+call_in_action+sentiment+word_count', data=post_data_2).fit()
+print(test4.summary())
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:          engagement_fb   R-squared:                       0.068
+    Model:                            OLS   Adj. R-squared:                  0.049
+    Method:                 Least Squares   F-statistic:                     3.551
+    Date:                Fri, 30 Mar 2018   Prob (F-statistic):            0.00207
+    Time:                        13:31:51   Log-Likelihood:                -2701.7
+    No. Observations:                 300   AIC:                             5417.
+    Df Residuals:                     293   BIC:                             5443.
+    Df Model:                           6                                         
+    Covariance Type:            nonrobust                                         
+    ==================================================================================
+                         coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------
+    Intercept       1538.8107    189.589      8.117      0.000    1165.681    1911.940
+    type[T.photo]    791.6027    344.322      2.299      0.022     113.945    1469.260
+    type[T.video]    547.7484    319.512      1.714      0.088     -81.082    1176.579
+    question        -168.5249    321.126     -0.525      0.600    -800.532     463.482
+    call_in_action   -81.2985    279.610     -0.291      0.771    -631.597     469.000
+    sentiment        187.5779     58.894      3.185      0.002      71.669     303.487
+    word_count         3.2887      3.910      0.841      0.401      -4.406      10.984
+    ==============================================================================
+    Omnibus:                      210.224   Durbin-Watson:                   1.746
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):             1970.197
+    Skew:                           2.885   Prob(JB):                         0.00
+    Kurtosis:                      14.150   Cond. No.                         174.
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    
+
+Post type (photo) and sentiment have significant effect on engagement.
+
+
+```python
+sns.lmplot(x="sentiment", y="engagement_fb", hue='type', data=post_data_2,palette='Set2')
+```
+
+
+
+
+    <seaborn.axisgrid.FacetGrid at 0x175a0fa5c50>
+
+
+
+
+![png](output_147_1.png)
+
+
+
+```python
+test5= ols('comment_sentiment ~ type+question+call_in_action+sentiment+word_count', data=post_data_2).fit()
+print(test5.summary())
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:      comment_sentiment   R-squared:                       0.120
+    Model:                            OLS   Adj. R-squared:                  0.102
+    Method:                 Least Squares   F-statistic:                     6.630
+    Date:                Fri, 30 Mar 2018   Prob (F-statistic):           1.37e-06
+    Time:                        13:32:09   Log-Likelihood:                -329.08
+    No. Observations:                 300   AIC:                             672.2
+    Df Residuals:                     293   BIC:                             698.1
+    Df Model:                           6                                         
+    Covariance Type:            nonrobust                                         
+    ==================================================================================
+                         coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------
+    Intercept          0.3283      0.070      4.712      0.000       0.191       0.465
+    type[T.photo]      0.1768      0.127      1.397      0.163      -0.072       0.426
+    type[T.video]      0.0420      0.117      0.358      0.721      -0.189       0.273
+    question           0.0142      0.118      0.120      0.905      -0.218       0.246
+    call_in_action    -0.1758      0.103     -1.711      0.088      -0.378       0.026
+    sentiment          0.1178      0.022      5.444      0.000       0.075       0.160
+    word_count         0.0026      0.001      1.807      0.072      -0.000       0.005
+    ==============================================================================
+    Omnibus:                        3.131   Durbin-Watson:                   1.935
+    Prob(Omnibus):                  0.209   Jarque-Bera (JB):                3.543
+    Skew:                          -0.013   Prob(JB):                        0.170
+    Kurtosis:                       3.532   Cond. No.                         174.
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    
+
+Only post sentiment can significantly affect comment sentiment.
+
+
+```python
+sns.regplot(x='sentiment',y='comment_sentiment',data=post_data_2)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x175a10c1278>
+
+
+
+
+![png](output_150_1.png)
+
+
+
+```python
+test6= ols('rea_senti ~ type+question+call_in_action+sentiment+word_count', data=post_data_2).fit()
+print(test6.summary())
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:              rea_senti   R-squared:                       0.156
+    Model:                            OLS   Adj. R-squared:                  0.139
+    Method:                 Least Squares   F-statistic:                     9.015
+    Date:                Fri, 30 Mar 2018   Prob (F-statistic):           4.76e-09
+    Time:                        13:32:15   Log-Likelihood:                -2283.3
+    No. Observations:                 300   AIC:                             4581.
+    Df Residuals:                     293   BIC:                             4607.
+    Df Model:                           6                                         
+    Covariance Type:            nonrobust                                         
+    ==================================================================================
+                         coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------
+    Intercept        -43.4929     47.001     -0.925      0.356    -135.995      49.009
+    type[T.photo]    335.2183     85.360      3.927      0.000     167.222     503.215
+    type[T.video]    286.3764     79.210      3.615      0.000     130.485     442.268
+    question          -9.2946     79.610     -0.117      0.907    -165.974     147.385
+    call_in_action  -221.5115     69.317     -3.196      0.002    -357.935     -85.088
+    sentiment         56.5409     14.600      3.873      0.000      27.806      85.276
+    word_count         0.6604      0.969      0.681      0.496      -1.247       2.568
+    ==============================================================================
+    Omnibus:                      149.687   Durbin-Watson:                   1.834
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):             2279.583
+    Skew:                          -1.632   Prob(JB):                         0.00
+    Kurtosis:                      16.104   Cond. No.                         174.
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    
+
+sentiment of reaction is significantly correlated to post type (photo and video), call-in-action content and sentiment
+
+
+```python
+sns.lmplot(x="sentiment", y="rea_senti", hue='call_in_action', data=post_data_2, palette='Set1')
+```
+
+
+
+
+    <seaborn.axisgrid.FacetGrid at 0x175a0e2b780>
+
+
+
+
+![png](output_153_1.png)
+
+
+## 5. Summary of the findings and implications to the communication-related challenge
+
+From above data analysis, two important results are obtained. Firstly, two factors that have the most significant effect on engagement are type and sentiment of posts. They have effects on most engagement measurement. For post type, photo is the most engaging type while video is the least. That visual factor is present in all type, no matter it is link or video might be the reason why the difference among post type groups is not strong. It is also noteworthy that sentiment of post has significant effect on sentiment of comment and reactions by audience. 
+
+Secondly, no independent variable has significant effect on the number of comments. The result can be partly explained by the fact that the number of comments is much smaller than numbers of other engagement metrics. Considering comments as an active type of engagement, this poses the problem of finding factors that can affect comments.
+
+Another finding is, against the hypotheses, question inclusion or call-in-action content seem to have negative effect on most engagement metrics, though not significantly.  
+
+From this observation, consideration of post type and sentiment should be conducted for engagement promotion.
+
+# II. Limitations of your analysis, and suggestions for further investigations
+
+The analysis is not out of limitations. Firstly, like other quantitative analysis, this data analysis plan runs the risk of losing in-depth information through generalization of materials. Content-wise variables defined by simplified techniques cannot present all aspect of the content, which should be improved by a more thorough research plan including more human interaction. 
+
+Besides, not every aspect of the issue is dealt with in this analysis. Factors such as publishing time or graphic characteristics may also have effect on engagement but were not studied. Similarly, the analysis only tests for linear relationship between independent variables and dependent variables, not non-linear one. Further analysis on other factors with other method of analysis are necessary to fully study Facebook engagement.
+
+Lastly, it is easier to do descriptive analysis with Facebook data as in this analysis than finding reasons behind audience behaviours, therefore further examination should be paid to the exploration of motivation for engagement (Mahrt & Scharkow, 2013, p.23). 
+
+
+
+# III. A discussion about ethical, privacy and normative considerations
+
+The use of data from the Facebook page of World Wildlife Fund in this research does not pose an ethical problem as severe as privacy invasion because the organization uses data from its own social media account. Regarding analysis of engagement made by audience, it can be argued that as the activities studied are made on a public Facebook page rather than personal ones, they indeed exist in public area. Still, the ethical issue with this type of research is equivalent to that applies to public observation research, both lack informed consent from unknowing participants. However, as the researched is conducted unknowingly, this plan could study the absolute behaviours of social media users, examining what people really do rather than what they report doing (Rieder, 2013, p.347). This excludes experimental effects that may distort behaviour due to human interaction (Mahrt & Scharkow, 2013, p.24).
+
+Finally, one normative issue to be concerned is that Facebook engagement does not represent real-life engagement and it is difficult to define the connection between the two. Speaking from the viewpoint that conservationist communication emphasises behavioural change, social media engagement that does not translate into reality is of little significance to NGO engagement.  
+
+
+## References
+
+Cho, M., Schweickart, T., & Haase, A. (2014). Public Engagement with Nonprofit Organizations on Facebook. Public Relations Review, 40, 565-567.
+
+Dosemagen, S. (2016, January 28). Huffington Post. Retrieved from Social Media and Saving the Environment: Clicktivism or Real Change?: https://www.huffingtonpost.com/shannon-dosemagen-/social-media-and-saving-t_b_9100362.html 
+
+Jackson, D. (2017, May 22). Know Your Limit: The Ideal Length of Every Social Media Post. Retrieved from Spout Social: https://sproutsocial.com/insights/social-media-character-counter/
+
+Mahrt, M., & Scharkow, M. (2013). The Value of Big Data in Digital Media Research. Journal of Broadcasting and Electronic Media, 57(1), 20–33. https://doi.org/10.1080/08838151.2012.761700
+
+Reinard, J. C. (2006). Chapter 2: Collecting Data on Variables. In J. C. Reinard, Communication Research Statistics (pp. 17-41). Sage.
+
+Rieder, B. (2013). Studying Facebook via data extraction. Proceedings of the 5th Annual ACM Web Science Conference on - WebSci ’13, 346–355. https://doi.org/10.1145/2464464.2464475
+
+Román Núñez, Y. C., & Cuesta Moreno, O. J. (2016). Communication and environmental conservation: Advances and challenges in Latin America. Revista Latina de Comunicacion Social, 71, 15–39. https://doi.org/10.4185/RLCS-2016-1082en
+
+Schwartz, C. (2017). 2017 Social Media Industry Benchmark Report. Retrieved from https://www.rivaliq.com/blog/2017-social-media-industry-benchmark-report/
+
+
